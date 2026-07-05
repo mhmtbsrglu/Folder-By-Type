@@ -20,7 +20,7 @@ Folder By Type, tür ve role göre react kodlarımızı veya dosyalarımızı ay
 * **`styles/`**: Global CSS, SASS veya Tailwind CSS konfigürasyonları gibi stil dosyalarını barındırır.
 * **`utils/`**: Herhangi bir bağımlılığı olmayan yardımcı fonksiyonlarımız bulunur.
 
-### Modül Bazlı Stil Dosyalarını Nasıl Tanımlarsın ?
+### Modül Bazlı Stil Dosyalarını `Components` için Nasıl Tanımlarsın ?
 1. İlgili modül klasöründe moduladi.module.scss adıyla yeni bir dosya oluştururum.
 2. Oluşturduğum dosyayı, stilini değiştirmek istediğim bileşene import ederek stilleri uygularım.
 ### SCSS Kullanarak Modüler Bir Button Bileşeni Nasıl Geliştirilir?

@@ -1,7 +1,3 @@
-<img width="1448" height="1086" alt="image" src="https://github.com/user-attachments/assets/28e85d4f-282e-45d0-92e4-3ef9cd724b18" />
-
-
-
 Junior iken React öğrendiğim zamanlar mimari hakkında bilgim olmadan ezbere giderdim. Bu hatayı çoğumuz yaşar çünkü doğru kaynak bulmak zordur.
 Klasörleri nasıl organize edeceğimi bilmeden, gördüğüm örnek projeleri taklit ederek ilerliyordum. components, utils, services gibi klasörler oluşturuyordum ama neden bu şekilde ayırdığımı, hangi dosyanın nereye gitmesi gerektiğini gerçekten anlamıyordum. Proje büyüdükçe bu eksik anlayışın bedelini ödüyordum: dağınık kod, nereye ne koyduğumu unutmak, aynı işi yapan fonksiyonları farklı yerlerde tekrar tekrar yazmak.
 Zamanla fark ettim ki mimari bilgisi, sadece "düzenli kod yazmak" değil, aynı zamanda neden o şekilde organize ettiğini savunabilmek. Mülakatlarda da en çok bu noktada zorlanıyoruz: kod yazabiliyoruz ama tercihlerimizin arkasındaki mantığı anlatamıyoruz. Bu yüzden benzer yoldan geçen junior, mid ve senior seviyedeki arkadaşlara bir referans noktası olması için ilgili dokümanı hazırladım. Aşağıda folder-by-type mimarisiyle ilgili, seviyeye göre ayrılmış öğretici soru ve cevapları bulabilirsiniz.
@@ -217,5 +213,81 @@ RTK'da `reducer`, `action` ve `type` tanımları zaten `createSlice` içinde bir
 
 **Dikkat!** Projenin mimari seçimi, ekip ölçeğiyle doğrudan orantılıdır. Ekip büyüdükçe projenin kapsamı ve karmaşıklığı da artacağından, takımların bağımsız çalışabilmesini sağlayan Feature-Driven Architecture (FDA) gibi modüler mimarilere redux için yönelim gösterilmesi kaçınılmaz hale gelecektir.
 
+### Axios ile Services'ları Nasıl Koordine Edersin ?
 
+Axios servislerini koordine ederken temel prensip, tekrarı önlemek ve tüm HTTP mantığını (auth, hata yönetimi, base URL vb.) tek bir merkezden yönetmektir. Bunu genellikle şu katmanlarla sağlarım:
 
+**1. Merkezi Axios Instance (`services/api.js` veya `services/axiosClient.js`)**
+
+Tüm uygulamanın kullanacağı ortak bir instance oluştururum. Base URL, timeout ve default header'lar burada tanımlanır.
+
+```js
+import axios from 'axios'
+
+const axiosClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+export default axiosClient
+```
+
+**2. Interceptor'lar**
+
+Request ve response interceptor'larını bu dosyada tanımlayarak her isteğe tekrar tekrar aynı kodu yazmaktan kurtulurum.
+
+* **Request Interceptor:** Token ekleme, loading state tetikleme gibi işler için kullanılır.
+* **Response Interceptor:** 401 durumunda refresh token akışını tetiklemek, global hata mesajlarını yakalamak veya API'den dönen response'u sadeleştirmek (örn. sadece `data` kısmını return etmek) için kullanılır.
+
+```js
+axiosClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+axiosClient.interceptors.response.use(
+  (response) => response.data,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // refresh token akışı veya logout tetikleme
+    }
+    return Promise.reject(error)
+  }
+)
+```
+
+**3. Domain Bazlı Servis Dosyaları**
+
+`services/` klasörü altında her domain/kaynak için ayrı bir dosya açarım. Böylece `userService`, `productService` gibi dosyalar birbirinden bağımsız kalır ve tek sorumluluk ilkesine uyar.
+
+```
+services/
+  axiosClient.js
+  userService.js
+  productService.js
+  authService.js
+```
+
+```js
+// userService.js
+import axiosClient from './axiosClient'
+
+export const getUser = (id) => axiosClient.get(`/users/${id}`)
+export const updateUser = (id, payload) => axiosClient.put(`/users/${id}`, payload)
+```
+
+**4. Hook Katmanıyla Bağlantı**
+
+Servis fonksiyonlarını doğrudan bileşende çağırmak yerine, `hooks/api/` altındaki custom hook'lar (örn. `useFetchUser`) aracılığıyla çağırırım. Bu sayede loading, error ve caching mantığı UI'dan tamamen izole edilmiş olur; servis katmanı sadece "nasıl istek atılır"dan, hook katmanı ise "ne zaman ve nasıl kullanılır"dan sorumlu olur.
+
+**5. Ortam (Environment) Bazlı Yönetim**
+
+Farklı ortamlar (dev, staging, prod) için base URL'i `.env` dosyalarından okuyarak servis katmanını ortamdan bağımsız hale getiririm; böylece kod değişmeden sadece environment değişkenleri değişerek farklı API'lere bağlanılabilir.
+
+Bu yapı sayesinde: tek bir yerden token/hata yönetimi yapılır, her domain kendi servis dosyasında izole kalır, ve bileşenler doğrudan axios ile değil sadece ilgili servis fonksiyonlarıyla haberleşir — bu da testability ve maintainability açısından büyük avantaj sağlar.

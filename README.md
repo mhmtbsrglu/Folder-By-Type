@@ -218,3 +218,4 @@ RTK'da `reducer`, `action` ve `type` tanımları zaten `createSlice` içinde bir
 **Dikkat!** Projenin mimari seçimi, ekip ölçeğiyle doğrudan orantılıdır. Ekip büyüdükçe projenin kapsamı ve karmaşıklığı da artacağından, takımların bağımsız çalışabilmesini sağlayan Feature-Driven Architecture (FDA) gibi modüler mimarilere redux için yönelim gösterilmesi kaçınılmaz hale gelecektir.
 
 
+

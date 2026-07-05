@@ -1,4 +1,5 @@
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/cf5be75f-2aad-4a50-a00a-947f04ae4ddc" />
+<img width="1448" height="1086" alt="image" src="https://github.com/user-attachments/assets/28e85d4f-282e-45d0-92e4-3ef9cd724b18" />
+
 
 
 Junior iken React öğrendiğim zamanlar mimari hakkında bilgim olmadan ezbere giderdim. Bu hatayı çoğumuz yaşar çünkü doğru kaynak bulmak zordur.
@@ -19,6 +20,7 @@ Folder By Type, tür ve role göre react kodlarımızı veya dosyalarımızı ay
 * **`context/`**: Bileşenler arası veri paylaşımı sağlayan React Context API tanımlamalarını tutar.
 * **`styles/`**: Global CSS, SASS veya Tailwind CSS konfigürasyonları gibi stil dosyalarını barındırır.
 * **`utils/`**: Herhangi bir bağımlılığı olmayan yardımcı fonksiyonlarımız bulunur.
+* **`tests/`**: Herhangi bir unit dahil diğer test'lerimiz yer alır.
 
 ### Modül Bazlı Stil Dosyalarını `Components` için Nasıl Tanımlarsın ?
 1. İlgili modül klasöründe moduladi.module.scss adıyla yeni bir dosya oluştururum.
@@ -144,3 +146,75 @@ Button.defaultProps = {
   outline: false,
 }
 ```
+### Folder By Type Küçük Projelerde veya Ekiplerde Neden Mantıklı?
+
+Küçük projelerde dosya sayısı az olduğu için "nerede ne var" karmaşası oluşmaz. Yapı basit, öğrenmesi kolay ve yeni başlayanlar için sezgiseldir. Ekstra bir "feature" kavramı yönetmeye gerek kalmaz.
+
+# Mid
+### Folder By Type vs Folder By Feature Farkı Nedir ?
+Folder By Type, tür ve role göre react kodlarımızı veya dosyalarımızı ayırdığımız bir mimari iken Folder by feature özelliklere/domainlere odaklanmaktadır.
+
+### Bileşen (Components) Ölçeklendirmesini Nasıl Yaparsın?
+Bileşenleri karmaşıklıklarına ve sorumluluklarına göre kategorize ederek `components` klasörü altında alt katmanlara ayırırım. Basit ve ölçeklenebilir bir yapıda genellikle şu kırılımları tercih ederim:
+* **`ui/`:** Yalnızca veri alıp görselleştiren, state yönetmeyen atomik ve tekrar kullanılabilir bileşenler (Button, Input, Modal vb.).
+* **`layouts/`:** Sayfa şablonlarını ve genel sayfa düzenini oluşturan iskelet bileşenler (Header, Sidebar, Footer vb.).
+* **`common/` (veya `shared/`):** Proje genelinde birden fazla modül tarafından ortak kullanılan işlevsel bileşenler.
+
+### Custom Hook'ları Ölçeklendirecek Olsan Nasıl Bir Yapı Kurardın?
+Hook'ları da yine sorumluluk alanlarına göre (Separation of Concerns - Sorumlulukların Ayrılması ilkesine bağlı kalarak) `hooks` klasörü altında alt katmanlara bölerdim:
+* **`api/` (veya `data/`):** Veri çekme, mutasyon ve önbelleğe alma (server-state) işlemlerini yöneten hook'lar (örn: `useFetchUser`, `usePostData`).
+* **`ui/`:** Doğrudan arayüz etkileşimlerini ve yerel state durumlarını kontrol eden hook'lar (örn: `useModal`, `useTheme`, `useWindowSize`).
+* **`form/`:** Form doğrulama, girdi takibi ve state yönetimini soyutlayan hook'lar (örn: `useFormValidation`).
+
+Bu sayede her hook'un tek bir sorumluluğu (Single Responsibility) olur ve kod tabanı büyüdükçe spagetti koda dönüşmesinin önüne geçilir.
+
+### Barrel File Nedir ?
+Barrel File, basit şekilde index.js içerisinde tüm exportların merkezi yerde toplanmasıdır ancak bundle olurken circular dependency sorununa sebebiyet verebilir.
+
+### State Management için Kullandığımız Redux'ı Oluştururken Nasıl Bir Mimari Yol İzlersin?
+
+Yol izlemeye başlamadan önce ilk olarak projenin Redux ve React sürümlerine bakılması gerekmektedir; çünkü çoğu kurumsal projede Redux Toolkit yerine saf Redux kullanılmış olabiliyor, dolayısıyla mimari kararlar bu doğrultuda değişkenlik göstermektedir. Bu sürüm ve mimari kontrollerini yaptıktan sonra izleyeceğim spesifik yollar şu şekildedir:
+
+**Eğer Redux Toolkit olmadan, Traditional Layered Architecture yani saf Redux kullanılmış eski bir kurumsal proje ise** mimarimiz şu şekilde olacaktır:
+
+```
+store/
+  actions/
+    userActions.js
+  types/
+    userTypes.js       # action type sabitleri (USER_FETCH_REQUEST vb.)
+  reducers/
+    userReducer.js
+    index.js            # combineReducers ile oluşturulan rootReducer
+  sagas/                # side-effect yönetimi redux-saga ile yapılıyorsa
+    userSaga.js
+    rootSaga.js
+  thunks/               # side-effect yönetimi redux-thunk ile yapılıyorsa (saga yerine)
+    userThunks.js
+  selectors/
+    userSelectors.js
+  persist/
+    persistConfig.js
+  index.js               # createStore ve middleware konfigürasyonu
+```
+
+Burada dikkat edilmesi gereken nokta, side-effect yönetiminin projeye göre değişebilmesidir: proje `redux-saga` kullanıyorsa `sagas/`, `redux-thunk` kullanıyorsa `thunks/` klasörü tercih edilir  ikisi birden genelde bulunmaz. Ayrıca `types/` klasörü, action type sabitlerini merkezi tutarak magic string tekrarını önler; `selectors/` katmanı ise state'e erişimi merkezi ve test edilebilir kılar.
+
+**Eğer Redux Toolkit ile yapılmış, güncel bir proje ise** mimarimiz şu şekilde olacaktır:
+
+```
+store/
+  slices/
+    userSlice.js
+    cartSlice.js
+  api/                  # RTK Query kullanılıyorsa (createApi ile veri çekme katmanı)
+    userApi.js
+  hooks.js              # TypeScript projelerde typed hook'lar (useAppDispatch, useAppSelector)
+  index.js               # configureStore burada tanımlanır
+```
+
+RTK'da `reducer`, `action` ve `type` tanımları zaten `createSlice` içinde birleştiği için ayrı klasörlere gerek kalmaz. Eğer veri çekme işlemleri RTK Query ile yönetiliyorsa bunun için ayrı bir `api/` klasörü açılır; TypeScript kullanılan projelerde ise `useDispatch`/`useSelector`'ın tip güvenli versiyonları genelde `hooks.js` dosyasında merkezi olarak tanımlanır.
+
+**Dikkat!** Projenin mimari seçimi, ekip ölçeğiyle doğrudan orantılıdır. Ekip büyüdükçe projenin kapsamı ve karmaşıklığı da artacağından, takımların bağımsız çalışabilmesini sağlayan Feature-Driven Architecture (FDA) gibi modüler mimarilere redux için yönelim gösterilmesi kaçınılmaz hale gelecektir.
+
+
